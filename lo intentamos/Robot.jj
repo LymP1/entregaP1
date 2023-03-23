@@ -1,0 +1,2196 @@
+/*
+Gramatica para el Robot:
+Autor: Alejandro Arango
+Modificado por: Silvia Takahashi
+Modificado por: Juan Pablo Morales.
+Agregadas producciones para manejar globos
+Modificado por Silvia Takahashi
+
+
+ **/
+
+
+options 
+{
+  
+	LOOKAHEAD=3; 
+	IGNORE_CASE=true;
+	STATIC = false;
+	
+}
+   
+
+PARSER_BEGIN(Robot)
+
+package uniandes.lym.robot.control;
+
+import uniandes.lym.robot.kernel.*;
+import uniandes.lym.robot.view.Console;
+ 
+import java.awt.Point;
+import java.io.*;
+import java.util.Vector;
+import java.util.Set;
+import java.util.LinkedList;
+import java.util.HashMap;
+import java.util.ArrayList;
+
+@SuppressWarnings("serial")
+
+public class Robot
+
+{
+ 
+
+ 
+ 
+
+	private RobotWorldDec world;
+	private HashMap <String, Integer > variables =new HashMap <String, Integer >();
+	private HashMap<String, HashMap < ArrayList< String>,ArrayList< ArrayList< String> >>> procesos = new HashMap<String, HashMap < ArrayList< String>,ArrayList< ArrayList< String> > >>();
+	
+	 int NORTH = 0;
+	 int SOUTH = 1;
+	 int EAST = 2;
+	 int WEST = 3;
+	
+	
+	void setWorld(RobotWorld w) {
+		world = (RobotWorldDec) w;	
+	}
+
+	String salida=new String();
+}
+PARSER_END(Robot)
+
+SKIP:
+{
+	" "
+	|	"\r"
+	|	"\t"
+	| "\n"
+}
+TOKEN : /* OPERATORS */
+{
+  < PLUS : "+" >
+| < MINUS : "-" >
+| < MULTIPLY : "*" >
+| < DIVIDE : "/" >
+| < GT : ">" >
+| < EQUALS : "==" >
+}
+
+TOKEN: /* Nombres de Comandos */
+{
+
+			<MOV:  "Mov">
+		
+		| 	<PUT: "Put">
+		| 	<PICK: "Pick">
+		|  < POP: "Pop" >
+		|  <GO: "GO" >
+        |  < HOP:  "HOP" >
+        
+
+}
+TOKEN:
+{
+  < ASSIGNTO:"assignTo">
+
+}
+
+TOKEN:
+{
+		<BALLOONS:  "BALLOONS" >
+		|	<CHIPS:     "CHIPS"  >	
+
+}
+
+
+
+
+
+
+TOKEN : // PROCEDURES 
+{
+  < ROBOT_R : "ROBOT_R" >
+| < VARS: "VARS" >
+| < PROCS: "PROCS" >
+}
+
+TOKEN : // OPERATORS:
+{
+ 
+ // < D: "left" | "right" | "around" >  //girar  |
+   < LAT: "north" | "south" | "east" | "west" >
+| < DIR: "front" | "right" | "left" | "back" | "around"> //DIRECCION
+| < IF: "if" >
+| < THEN: "then" >
+| < ELSE: "else" >
+| < WHILE: "while" >
+| < DO: "do" >
+| < REPEAT: "repeat" >
+}
+
+TOKEN : // INTRUCTIONS:
+{
+  < GOTO: "goto" >
+| < MOVE: "move" >
+| < TURN: "turn" >
+| < FACE: "face" >
+| < MOVETOTHE: "moveToThe" >
+| < MOVEINDIR: "moveInDir" >
+| < JUMPTOTHE: "jumpToThe" >
+| < JUMPINDIR: "jumpindir" >
+| < NOP: "nop" >
+}
+
+TOKEN: // CONDITION:
+{
+  < FACING:"facing">
+| < CANPUT: "canPut" >
+| < CANPICK: "canPick" >
+| < CANMOVEINDIR: "canMoveInDir" >
+| < CANJUMPINDIR: "canJumpInDir" >
+| < CANMOVETOTHE: "canMoveToThe" >
+| < CANJUMPTOTHE: "canJumpToThe" >
+| < NOT: "not" >
+}
+
+TOKEN :
+{
+ 
+ < ID : < LETTER > (< LETTER > | < DIGIT >)* >
+| <NUM: (<DIGIT>)+ >
+| < #DIGIT : [ "0"-"9" ] >
+| < #LETTER : [ "a"-"z" ] >
+}
+
+
+	//boolean command(uniandes.lym.robot.view.Console sistema) :
+	boolean command(Console sistema):
+	{	
+		
+		int x,y;
+		salida=new String();	
+	}
+	
+
+	
+	{
+	  
+	 
+	estructura() { return true;}
+  	| <EOF> {return false;}	
+	}
+
+//Estructura
+	void estructura():
+	{
+	}
+	{
+	  < ROBOT_R >
+	  (
+	    crearVars()	  )?
+	  <PROCS >
+	  (
+	    procedureDef()	  )+
+	  " ["
+	  
+		(		  ejecutables()
+		  )*
+	  "]"	 	  
+	}
+
+	//Vars
+	void crearVars():
+	{
+	  Token varT;
+	  String var;
+	}
+	{
+	  < VARS >
+	  (
+	    varT=< ID > ","{
+	      var =varT.image;
+	      variables.put(var, null); }
+	  )*
+	  (
+	    varT=< ID > ";"{
+	      var =varT.image;
+	      variables.put(var, null); }
+	  )
+	}
+	
+//PROCS
+
+ void procedureDef():
+ 
+ {
+   
+ Token nom;
+ Token param;
+ Token param2;
+ HashMap < ArrayList< String>,ArrayList< ArrayList< String> > > mapa= new  HashMap < ArrayList< String>,ArrayList< ArrayList< String> > >();
+ ArrayList< ArrayList< String>> procedimientos= new ArrayList< ArrayList< String>>();
+ ArrayList< String> params= new ArrayList< String>();
+ 
+ }
+ 
+ {
+    nom=< ID>  "[" "|"
+    (param=< ID >
+    {variables.put(param.image, null);
+      params.add(param.image);} 
+    )
+    (","  param2=< ID > {variables.put(param2.image, null);
+    params.add(param2.image);})*
+    "|" procedimientos=block() "]"
+    {
+      mapa.put(params, procedimientos);
+      procesos.put(nom.image, mapa);
+    
+    
+    }
+ }
+
+ 
+
+//CONDITIONAL
+
+  ArrayList conditional():
+  {
+    boolean x=true;
+    ArrayList< ArrayList< String>> block1= new ArrayList< ArrayList< String>>();
+    ArrayList< ArrayList< String>> block2= new ArrayList< ArrayList< String>>();
+    ArrayList< ArrayList< String>> fin= new ArrayList< ArrayList< String>>();
+  }
+  {
+    (      < IF> ":" x=cond1()
+    )
+    < THEN> ":" "[" block1=block() "]" < ELSE > ":"   "[" block2=block() "]"
+
+    { if(x) {fin=block1;}
+    else { fin=block2;}
+    return fin;}
+
+    
+  } 
+
+
+//REPEAT
+
+ArrayList repeat():
+
+ {
+      int num;
+      int i=0;
+      ArrayList< ArrayList< String>> grande= new ArrayList< ArrayList< String>>();
+      ArrayList< ArrayList< String>> block= new ArrayList< ArrayList< String>>();
+    }
+    {
+      < REPEAT > ":" num=varOrNum() "[" block=block() "]"
+      {
+        while (num > 0)
+        {
+          while(i<block.size())
+	    {
+	      grande.add(block.get(i));
+	      i++ ;
+	      }           
+          num--;
+        }
+      }
+     {  return grande; }
+    }
+    
+//WHILE
+
+	ArrayList loop():
+    {
+    boolean x=true;
+    ArrayList< ArrayList< String>> block= new ArrayList< ArrayList< String>>();
+    ArrayList< ArrayList< String>> nada= new ArrayList< ArrayList< String>>();
+   
+    ArrayList< ArrayList< String>> fin= new ArrayList< ArrayList< String>>();
+    }
+    {
+      < WHILE >":" x=cond1()  <DO > ":" "[" block=block() "]"
+      { if (x) { return block;}
+      else { return nada; }}
+    }
+
+
+
+
+    ArrayList callProc()throws Error:
+    {
+     
+       Token nomT;
+      int x;
+      HashMap < ArrayList< String>,ArrayList< ArrayList< String>> > nuestro=new HashMap < ArrayList< String>,ArrayList< ArrayList< String> >>();
+      ArrayList< Integer> para= new ArrayList();
+      ArrayList< ArrayList< String>> fin= new ArrayList< ArrayList< String>>();
+      
+      }
+      { 
+    nomT=< ID> ":"
+    (
+      x=varOrNum() { para.add(x);}    )
+    (
+      ","
+      x=varOrNum() { para.add(x);}    )*
+    {
+      if(procesos.containsKey(nomT.image))
+      {
+        nuestro=procesos.get(nomT.image);
+        Set< ArrayList< String>> noseS = nuestro.keySet();
+        ArrayList<ArrayList< String>> nose = new ArrayList<ArrayList< String>>(noseS);
+        fin=nuestro.get(nose.get(0));
+    	
+         if (para.size()==(nose.get(0).size()))
+         {
+           variables.put(nose.get(0).get(0),para.get(0));
+          variables.put(nose.get(0).get(1),para.get(1));
+          }
+         else { throw new Error("El numero de parametros no coinside");}
+      }else { throw new Error("El procedimiento no existe");}
+      
+       return fin;
+
+
+    }
+  }
+void ejecutar_bloque( ArrayList< ArrayList< String>>  bloque):
+
+	{
+	 
+	  
+	  ArrayList< String> lista_strings= new  ArrayList< String>();
+	
+	  for (int i = 0; i < bloque.size(); i++) {
+	     lista_strings = bloque.get(i);
+	    for (int j = 0; j < lista_strings.size(); j++) {
+		  String elemento = lista_strings.get(j);
+		  
+		  if (elemento.equals("goto")) {
+			world.setPostion(Integer.parseInt(lista_strings.get(j+1)),Integer.parseInt(lista_strings.get(j+2)));
+		  }
+		  else if (elemento.equals("assignto")) {
+		    if(variables.containsKey(lista_strings.get(j+1))) {
+		        variables.put(lista_strings.get(j+1), Integer.parseInt(lista_strings.get(j+2)));
+		      }else {
+		        throw new Error("La variable no existe");
+		      }
+		  }
+		  else if (elemento.equals("move")) {
+		    world.moveForward(Integer.parseInt(lista_strings.get(j+1)),false);
+		  }
+		  else if (elemento.equals("turn")) {
+		    if (lista_strings.get(j+1).equals("right")) {
+		      world.turnRight();
+		    }
+		    else if(lista_strings.get(j+1).equals("left")) {
+		      world.turnRight();
+		      world.turnRight();
+		      world.turnRight();      
+		    }
+		    else if(lista_strings.get(j+1).equals("around")) {
+		      world.turnRight();
+		      world.turnRight();
+		    }
+		  }
+		  else if (elemento.equals("face")) {
+		    int orientacion = world.getFacing();
+		      if (lista_strings.get(j+1).equals("north")) {
+		        if (orientacion == SOUTH) {
+		          world.turnRight();
+		          world.turnRight();
+		        }
+		        else if (orientacion == EAST) {
+		          world.turnRight();
+		          world.turnRight();
+		          world.turnRight();
+		        }
+		        else if (orientacion == WEST) {
+		          world.turnRight();
+		        }
+		      }
+		      else if (lista_strings.get(j+1).equals("south")) {
+				if (orientacion == NORTH) {
+				  world.turnRight();
+				  world.turnRight();
+				}
+				else if (orientacion == EAST) {
+				  world.turnRight();
+				}
+				else if (orientacion == WEST) {
+				  world.turnRight();
+				  world.turnRight();
+				  world.turnRight();
+				}
+			  }
+			  else if (lista_strings.get(j+1).equals("east")) {
+			    if (orientacion == NORTH) {
+				  world.turnRight();
+			    }
+			    else if (orientacion == SOUTH) {
+				  world.turnRight();
+				  world.turnRight();
+				  world.turnRight();
+			    }
+			    else if (orientacion == WEST) {
+				  world.turnRight();
+				  world.turnRight();
+			    }
+		      }
+			  else if (lista_strings.get(j+1).equals("west")) {
+			    if (orientacion == NORTH) {
+				  world.turnRight();
+				  world.turnRight();
+				  world.turnRight();
+			    }
+			    else if (orientacion == SOUTH) {
+				  world.turnRight();
+			    }
+			    else if (orientacion == EAST) {
+				  world.turnRight();
+				  world.turnRight();
+			    }
+		  }
+		  else if (elemento.equals("put")) {
+		    String tipo = lista_strings.get(j+1);
+		    int numero = Integer.parseInt(lista_strings.get(j+2));
+		    if (tipo.equals("balloons")) {
+			  world.putBalloons(numero);
+		    }
+		    else {
+			  world.putChips(numero);
+		    }
+		  }
+		  else if (elemento.equals("pick")) {
+		    String tipo = lista_strings.get(j+2);
+		    int valor = Integer.parseInt(lista_strings.get(j+1));
+		    if (tipo.equals("chips")) {
+			  world.pickChips(valor);
+			}
+			else if(tipo.equals("balloons")) {
+			  world.grabBalloons(valor);
+		  } }
+		  else if (elemento.equals("movetothe")) {
+		     orientacion = world.getFacing();
+		     int valor = Integer.parseInt(lista_strings.get(j+1));
+			  if (lista_strings.get(j+2).equals("front")) {
+			  	if (orientacion == 0) {
+				world.moveVertically(-valor, false);
+			  	}
+			  	else if (orientacion == 1) {
+				world.moveVertically(valor, false);
+			  	}
+			  	else if (orientacion == 2) {
+				world.moveHorizontally(valor, false);
+			  	}
+			  	else if (orientacion == 3) {
+				world.moveHorizontally(-valor, false);
+			  	}
+			  }
+			  else if (lista_strings.get(j+2).equals("back")) {
+				if (orientacion == 0) {
+				world.moveVertically(valor, false);
+			  	}
+			  	else if (orientacion == 1) {
+				world.moveVertically(-valor, false);
+			  	}
+			  	else if (orientacion == 2) {
+				world.moveHorizontally(-valor, false);
+			  	}
+			  	else if (orientacion == 3) {
+				world.moveHorizontally(valor, false);
+			  	}
+			  }
+			  else if (lista_strings.get(j+2).equals("right")) {
+				if (orientacion == 1) {
+				world.moveHorizontally(valor, false);
+			  	}
+			  	else if (orientacion == 1) {
+				world.moveHorizontally(-valor, false);
+			  	}
+			  	else if (orientacion == 2) {
+				world.moveVertically(valor, false);
+			  	}
+			  	else if (orientacion == 3) {
+				world.moveVertically(-valor, false);
+			  	}
+			  }
+			  else if (lista_strings.get(j+2).equals("left")) {
+				if (orientacion == 0) {
+				world.moveHorizontally(-valor, false);
+			  	}
+			  	else if (orientacion == 1) {
+				world.moveHorizontally(valor, false);
+			  	}
+			  	else if (orientacion == 2) {
+				world.moveVertically(-valor, false);
+			  	}
+			  	else if (orientacion == 3) {
+				world.moveVertically(valor, false);
+			  	}
+			  }
+		  }
+		  else if (elemento.equals("moveindir")) {
+	           orientacion = world.getFacing();
+	           int valor = Integer.parseInt(lista_strings.get(j+1));
+	          if (lista_strings.get(j+2).equals("north")) {
+		        if (orientacion == NORTH) {
+		          world.moveForward(valor, false);
+		        }
+	            if (orientacion == SOUTH) {
+	              world.turnRight();
+	              world.turnRight();
+	              world.moveForward(valor, false);
+	            }
+	            else if (orientacion == EAST) {
+	              world.turnRight();
+	              world.turnRight();
+	              world.turnRight();
+	              world.moveForward(valor, false);
+	            }
+	            else if (orientacion == WEST) {
+	              world.turnRight();
+	              world.moveForward(valor, false);
+	            }
+	          }
+	          else if (lista_strings.get(j+2).equals("south")) {
+	            if (orientacion == NORTH) {
+	              world.turnRight();
+	              world.turnRight();
+	              world.moveForward(valor, false);
+	            }
+		        else if (orientacion == SOUTH) {
+	              world.moveForward(valor, false);
+	            }
+	            else if (orientacion == EAST) {
+	              world.turnRight();
+	              world.moveForward(valor, false);
+	            }
+	            else if (orientacion == WEST) {
+	              world.turnRight();
+	              world.turnRight();
+	              world.turnRight();
+	              world.moveForward(valor, false);
+	            }
+	          }
+	          else if (lista_strings.get(j+2).equals("east")) {
+	            if (orientacion == NORTH) {
+	              world.turnRight();
+	              world.moveForward(valor, false);
+	            }
+	            else if (orientacion == SOUTH) {
+	              world.turnRight();
+	              world.turnRight();
+	              world.turnRight();
+	              world.moveForward(valor, false);
+	            }
+		        else if (orientacion == EAST) {
+	              world.moveForward(valor, false);
+	            }
+	            else if (orientacion == WEST) {
+	              world.turnRight();
+	              world.turnRight();
+	              world.moveForward(valor, false);
+	            }
+	          }
+	          else if (lista_strings.get(j+2).equals("west")) {
+	            if (orientacion == NORTH) {
+	              world.turnRight();
+	              world.turnRight();
+	              world.turnRight();
+	              world.moveForward(valor, false);
+	            }
+	            else if (orientacion == SOUTH) {
+	              world.turnRight();
+	              world.moveForward(valor, false);
+	            }
+	            else if (orientacion == EAST) {
+	              world.turnRight();
+	              world.turnRight();
+	              world.moveForward(valor, false);
+	            }
+		        else if (orientacion == WEST) {
+	              world.moveForward(valor, false);
+	            }
+	          }
+			    
+		  }
+		  else if (elemento.equals("jumptothe")) {
+		     orientacion = world.getFacing();
+		     int valor =Integer.parseInt( lista_strings.get(j+1));
+			  if (lista_strings.get(j+2).equals("front")) {
+			  	if (orientacion == 0) {
+				world.moveVertically(-valor, true);
+			  	}
+			  	else if (orientacion == 1) {
+				world.moveVertically(valor, true);
+			  	}
+			  	else if (orientacion == 2) {
+				world.moveHorizontally(valor, true);
+			  	}
+			  	else if (orientacion == 3) {
+				world.moveHorizontally(-valor, true);
+			  	}
+			  }
+			  else if (lista_strings.get(j+2).equals("back")) {
+				if (orientacion == 0) {
+				world.moveVertically(valor, true);
+			  	}
+			  	else if (orientacion == 1) {
+				world.moveVertically(-valor, true);
+			  	}
+			  	else if (orientacion == 2) {
+				world.moveHorizontally(-valor, true);
+			  	}
+			  	else if (orientacion == 3) {
+				world.moveHorizontally(valor, true);
+			  	}
+			  }
+			  else if (lista_strings.get(j+2).equals("right")) {
+				if (orientacion == 1) {
+				world.moveHorizontally(valor, true);
+			  	}
+			  	else if (orientacion == 1) {
+				world.moveHorizontally(-valor, true);
+			  	}
+			  	else if (orientacion == 2) {
+				world.moveVertically(valor, true);
+			  	}
+			  	else if (orientacion == 3) {
+				world.moveVertically(-valor, true);
+			  	}
+			  }
+			  else if (lista_strings.get(j+2).equals("left")) {
+				if (orientacion == 0) {
+				world.moveHorizontally(-valor, true);
+			  	}
+			  	else if (orientacion == 1) {
+				world.moveHorizontally(valor, true);
+			  	}
+			  	else if (orientacion == 2) {
+				world.moveVertically(-valor, true);
+			  	}
+			  	else if (orientacion == 3) {
+				world.moveVertically(valor, true);
+			  	}
+			  }
+		  }
+		  else if (elemento.equals("jumpindir")) {
+		     orientacion = world.getFacing();
+	           int valor = Integer.parseInt(lista_strings.get(j+1));
+	          if (lista_strings.get(j+2).equals("north")) {
+		        if (orientacion == NORTH) {
+		          world.moveForward(valor, true);
+		        }
+	            if (orientacion == SOUTH) {
+	              world.turnRight();
+	              world.turnRight();
+	              world.moveForward(valor, true);
+	            }
+	            else if (orientacion == EAST) {
+	              world.turnRight();
+	              world.turnRight();
+	              world.turnRight();
+	              world.moveForward(valor, true);
+	            }
+	            else if (orientacion == WEST) {
+	              world.turnRight();
+	              world.moveForward(valor, true);
+	            }
+	          }
+	          else if (lista_strings.get(j+2).equals("south")) {
+	            if (orientacion == NORTH) {
+	              world.turnRight();
+	              world.turnRight();
+	              world.moveForward(valor, true);
+	            }
+		        else if (orientacion == SOUTH) {
+	              world.moveForward(valor, true);
+	            }
+	            else if (orientacion == EAST) {
+	              world.turnRight();
+	              world.moveForward(valor, true);
+	            }
+	            else if (orientacion == WEST) {
+	              world.turnRight();
+	              world.turnRight();
+	              world.turnRight();
+	              world.moveForward(valor, true);
+	            }
+	          }
+	          else if (lista_strings.get(j+2).equals("east")) {
+	            if (orientacion == NORTH) {
+	              world.turnRight();
+	              world.moveForward(valor, true);
+	            }
+	            else if (orientacion == SOUTH) {
+	              world.turnRight();
+	              world.turnRight();
+	              world.turnRight();
+	              world.moveForward(valor, true);
+	            }
+		        else if (orientacion == EAST) {
+	              world.moveForward(valor, true);
+	            }
+	            else if (orientacion == WEST) {
+	              world.turnRight();
+	              world.turnRight();
+	              world.moveForward(valor, true);
+	            }
+	          }
+	          else if (lista_strings.get(j+2).equals("west")) {
+	            if (orientacion == NORTH) {
+	              world.turnRight();
+	              world.turnRight();
+	              world.turnRight();
+	              world.moveForward(valor, true);
+	            }
+	            else if (orientacion == SOUTH) {
+	              world.turnRight();
+	              world.moveForward(valor, true);
+	            }
+	            else if (orientacion == EAST) {
+	              world.turnRight();
+	              world.turnRight();
+	              world.moveForward(valor, true);
+	            }
+		        else if (orientacion == WEST) {
+	              world.moveForward(valor, true);
+	            }
+	          }
+		  }
+	    }
+	  }
+	}
+  }
+
+
+{ " ," }
+
+
+      void ejecutables():
+      {
+         ArrayList< ArrayList< String>>  correr= new  ArrayList< ArrayList< String>> ();
+        }
+      { (
+        commandSI()
+    	|correr= loop()
+    	| correr= repeat()
+    	| correr=conditional()
+    	| correr=callProc()
+
+    	{ ejecutar_bloque(correr);}
+
+    )+}
+      
+
+      
+
+
+//COMANDOS
+
+
+	ArrayList block():
+	{
+	int i=0;  
+ 	ArrayList< ArrayList< String>> proces= new ArrayList< ArrayList< String>>();
+ 	ArrayList< ArrayList< String>> fin= new ArrayList< ArrayList< String>> ();
+	}
+	{
+	  (proces=commandNO()
+	  | proces=conditional()
+	  | proces=repeat()
+	  | proces=loop()
+	  |proces=callProc()
+	  {
+	    while(i<proces.size())
+	    {
+	      fin.add(proces.get(i));
+	      i++ ;
+	      } 
+	     }
+
+	  )
+	  (";" proces=commandNO()
+	   | proces=conditional()
+	  | proces=repeat()
+	  | proces=loop()
+	  |proces=callProc()
+	  
+	  {while(i<proces.size())
+	    {
+	      fin.add(proces.get(i));
+	      i++ ;
+	      }  })*
+	  { return fin;}
+	  
+	}
+
+
+
+	
+
+	
+	ArrayList commandNO():
+	{
+	 ArrayList< ArrayList< String>> proces= new ArrayList< ArrayList< String>>();
+
+	}
+	{
+	   comandAssingTo(false)
+	| proces= comandNop()
+	| comandPick(false)
+	| proces= comandGoto(false)
+	| proces= comandTurn(false)
+	| comandMove(false)
+	| proces= comandPut(false)
+	| proces= comandmoveToThe(false)
+	| comandmoveInDir(false)
+	| comandJumpInDir(false)
+	| proces= comandJumpToThe(false)
+	| commandFace(false)
+	{
+	  return proces;
+	}
+	}
+
+
+
+	
+	void commandSI():
+	{
+	}
+	{
+	  comandAssingTo(true)
+	| comandNop()
+	| comandPick(true)
+	| comandGoto(true)
+	| comandTurn(true)
+	| comandMove(true)
+	| comandPut(true)
+	| comandmoveToThe(true)
+	| comandmoveInDir(true)
+	| comandJumpInDir(true)
+	| comandJumpToThe(true)
+	| commandFace(true)
+	}
+
+	
+
+
+
+ArrayList comandJumpInDir(boolean ejecutar):
+    {
+      int valor;
+      Token lat;
+      ArrayList < ArrayList <String >> grande = new ArrayList();
+      ArrayList < String> elementos = new ArrayList();
+    }
+    {
+      (
+        < JUMPINDIR > ":" valor=varOrNum() "," lat=< LAT >
+        { 
+        if (ejecutar) { 
+        
+          String x = lat.image.toLowerCase();
+           int orientacion = world.getFacing();
+          if (x.equals("north")) {
+	        if (orientacion == NORTH) {
+	          world.moveForward(valor, true);
+	        }
+            if (orientacion == SOUTH) {
+              world.turnRight();
+              world.turnRight();
+              world.moveForward(valor, true);
+            }
+            else if (orientacion == EAST) {
+              world.turnRight();
+              world.turnRight();
+              world.turnRight();
+              world.moveForward(valor, true);
+            }
+            else if (orientacion == WEST) {
+              world.turnRight();
+              world.moveForward(valor, true);
+            }
+          }
+          else if (x.equals("south")) {
+            if (orientacion == NORTH) {
+              world.turnRight();
+              world.turnRight();
+              world.moveForward(valor, true);
+            }
+	        else if (orientacion == SOUTH) {
+              world.moveForward(valor, true);
+            }
+            else if (orientacion == EAST) {
+              world.turnRight();
+              world.moveForward(valor, true);
+            }
+            else if (orientacion == WEST) {
+              world.turnRight();
+              world.turnRight();
+              world.turnRight();
+              world.moveForward(valor, true);
+            }
+          }
+          else if (x.equals("east")) {
+            if (orientacion == NORTH) {
+              world.turnRight();
+              world.moveForward(valor, true);
+            }
+            else if (orientacion == SOUTH) {
+              world.turnRight();
+              world.turnRight();
+              world.turnRight();
+              world.moveForward(valor, true);
+            }
+	        else if (orientacion == EAST) {
+              world.moveForward(valor, true);
+            }
+            else if (orientacion == WEST) {
+              world.turnRight();
+              world.turnRight();
+              world.moveForward(valor, true);
+            }
+          }
+          else if (x.equals("west")) {
+            if (orientacion == NORTH) {
+              world.turnRight();
+              world.turnRight();
+              world.turnRight();
+              world.moveForward(valor, true);
+            }
+            else if (orientacion == SOUTH) {
+              world.turnRight();
+              world.moveForward(valor, true);
+            }
+            else if (orientacion == EAST) {
+              world.turnRight();
+              world.turnRight();
+              world.moveForward(valor, true);
+            }
+	        else if (orientacion == WEST) {
+              world.moveForward(valor, true);
+            }
+          }
+        
+        elementos.add("jumpindir");
+        elementos.add(Integer.toString(valor));
+        elementos.add(x);
+        grande.add(elementos);
+        return elementos;
+		}
+      }
+      )
+    }
+     
+  ArrayList comandJumpToThe(boolean verificar):
+	{
+	  
+	  Token objT;
+	  int valor;
+	   ArrayList < String> rt= new ArrayList < String>();
+	   ArrayList< ArrayList< String>> fin= new  ArrayList< ArrayList< String>>();
+	  
+	}
+	{
+	  (
+		< JUMPTOTHE > ":" valor=varOrNum() ","  objT=< DIR > 
+		{if(verificar) {  
+		  String x = objT.image.toLowerCase();
+		   int orientacion = world.getFacing();
+		  if (x.equals("front")) {
+		  	if (orientacion == 0) {
+			world.moveVertically(-valor, true);
+		  	}
+		  	else if (orientacion == 1) {
+			world.moveVertically(valor, true);
+		  	}
+		  	else if (orientacion == 2) {
+			world.moveHorizontally(valor, true);
+		  	}
+		  	else if (orientacion == 3) {
+			world.moveHorizontally(-valor, true);
+		  	}
+		  }
+		  else if (x.equals("back")) {
+			if (orientacion == 0) {
+			world.moveVertically(valor, true);
+		  	}
+		  	else if (orientacion == 1) {
+			world.moveVertically(-valor, true);
+		  	}
+		  	else if (orientacion == 2) {
+			world.moveHorizontally(-valor, true);
+		  	}
+		  	else if (orientacion == 3) {
+			world.moveHorizontally(valor, true);
+		  	}
+		  }
+		  else if (x.equals("right")) {
+			if (orientacion == 1) {
+			world.moveHorizontally(valor, true);
+		  	}
+		  	else if (orientacion == 1) {
+			world.moveHorizontally(-valor, true);
+		  	}
+		  	else if (orientacion == 2) {
+			world.moveVertically(valor, true);
+		  	}
+		  	else if (orientacion == 3) {
+			world.moveVertically(-valor, true);
+		  	}
+		  }
+		  else if (x.equals("left")) {
+			if (orientacion == 0) {
+			world.moveHorizontally(-valor, true);
+		  	}
+		  	else if (orientacion == 1) {
+			world.moveHorizontally(valor, true);
+		  	}
+		  	else if (orientacion == 2) {
+			world.moveVertically(-valor, true);
+		  	}
+		  	else if (orientacion == 3) {
+			world.moveVertically(valor, true);
+			}
+		  }
+		} rt.add("moveToThe");
+	   rt.add(Integer.toString(valor));
+	   rt.add(objT.image);
+	   fin.add(rt );
+	   return fin;}
+	  ) 
+	   
+	}
+
+
+
+
+
+	ArrayList comandAssingTo(boolean ejecutar):
+	{
+	Token variableT;
+	Token valorT;
+
+	  String variable;
+	  int valor;
+	  ArrayList < String > parametros = new ArrayList();
+	  ArrayList < ArrayList <String >> grande = new ArrayList();
+	}
+	{
+	  < ASSIGNTO> ":" valorT=< NUM >{ try 
+				{
+					valor = Integer.parseInt(valorT.image);
+				} 
+				catch (NumberFormatException ee) 
+				{
+					throw new Error("Number out of bounds: "+token.image+" !!");
+				}
+				 }
+
+	   "," variableT=< ID> {
+	      variable =variableT.image;
+	      if (ejecutar) { 
+		      if(variables.containsKey(variable)) {
+		        variables.put(variable, valor);
+		      }else {
+		        throw new Error("La variable no existe");
+		      }
+		  parametros.add("assignto");
+		  parametros.add(variable);
+		  parametros.add(Integer.toString(valor));
+		  grande.add(parametros);
+	      }	       
+	     }
+	  { return grande; }
+	}
+
+	ArrayList comandNop():
+ {
+   ArrayList< String>  proces= new ArrayList();
+
+ }
+ {
+   < NOP> ":"
+   {proces.add("nop");
+     return proces;}
+ }
+	
+
+
+
+	
+	ArrayList comandPick(boolean ejecutar):
+	{
+	  
+	  Token objT;
+	  String obj;
+	  int valor;
+	  ArrayList < String> parametros = new ArrayList();
+	  ArrayList < ArrayList <String >> grande = new ArrayList();
+	  
+	}
+	{
+	  < PICK >":" valor=varOrNum() "," (objT=< BALLOONS> |objT=< CHIPS>)
+
+	  {
+	    if (ejecutar) {
+		  obj= objT.image.toLowerCase();
+		  if (obj.equals("chips")) {
+		    world.pickChips(valor);
+		  }
+		  else if(obj.equals("balloons")) {
+		    world.grabBalloons(valor);
+		  }
+		  parametros.add("pick");
+		  parametros.add(Integer.toString(valor));
+		  parametros.add(obj);
+		  grande.add(parametros);
+		}
+
+	  }
+	  { return grande;}
+	  }
+
+
+
+
+
+
+	
+	ArrayList comandGoto (boolean ejecutar):
+	{
+	  int var;
+	  int var2;
+	  ArrayList < String> rt= new ArrayList();
+	  ArrayList< ArrayList< String>> fin= new ArrayList();
+	  
+	}
+	{
+	  (
+	  < GOTO > ":" var= varOrNum() "," var2=varOrNum()
+	  {
+	    if(ejecutar) { 
+		world.setPostion(var,var2); }
+		rt.add("goto");
+		rt.add(Integer.toString(var));
+		rt.add(Integer.toString(var2));
+
+		return rt;
+	  }
+	)
+	}
+
+	ArrayList comandTurn (boolean ejecutar):
+	{
+	  Token var;
+	   ArrayList < String> rt= new ArrayList();
+	   ArrayList< ArrayList< String>> fin= new ArrayList();
+	}
+	{
+	  (
+	  < TURN > ":" var=< DIR > 
+	  {if(ejecutar) { 
+	    String x=var.image.toLowerCase();
+	    if (x.equals("right")) {
+	      world.turnRight();
+	    }
+	    else if(x.equals("left")) {
+	      world.turnRight();
+	      world.turnRight();
+	      world.turnRight()	;      
+	    }
+	    else if(x.equals("around")) {
+	      world.turnRight();
+	      world.turnRight();
+	    }
+	  } rt.add("turn");
+	  rt.add(var.image);
+	  fin.add(rt);
+	 
+	  return fin;
+	  }
+	)
+	}
+
+	ArrayList comandMove (boolean ejecutar):
+	{
+	  int var;
+	  ArrayList < String > parametros = new ArrayList();
+	  ArrayList < ArrayList <String >> grande = new ArrayList();
+	}
+	{
+	  (
+	  < MOVE > ":" var= varOrNum()
+	  {
+	    if (ejecutar) { 
+			world.moveForward(var,false);
+			parametros.add("move");
+			parametros.add(Integer.toString(var));
+			grande.add(parametros);
+        }    
+	  }
+	)
+	{return grande;}
+	}
+
+   ArrayList comandmoveToThe (boolean verificar):
+	{
+	  
+	  Token objT;
+	  int valor;
+	   ArrayList < String> rt= new ArrayList();
+	   ArrayList< ArrayList< String>> fin= new ArrayList();
+	}
+	{ 
+	  (
+		< MOVETOTHE > ":" valor=varOrNum() ","  objT=< DIR >
+		{if (verificar) { 
+		  String x = objT.image.toLowerCase();
+		   int orientacion = world.getFacing();
+		  if (x.equals("front")) {
+		  	if (orientacion == 0) {
+			world.moveVertically(-valor, false);
+		  	}
+		  	else if (orientacion == 1) {
+			world.moveVertically(valor, false);
+		  	}
+		  	else if (orientacion == 2) {
+			world.moveHorizontally(valor, false);
+		  	}
+		  	else if (orientacion == 3) {
+			world.moveHorizontally(-valor, false);
+		  	}
+		  }
+		  else if (x.equals("back")) {
+			if (orientacion == 0) {
+			world.moveVertically(valor, false);
+		  	}
+		  	else if (orientacion == 1) {
+			world.moveVertically(-valor, false);
+		  	}
+		  	else if (orientacion == 2) {
+			world.moveHorizontally(-valor, false);
+		  	}
+		  	else if (orientacion == 3) {
+			world.moveHorizontally(valor, false);
+		  	}
+		  }
+		  else if (x.equals("right")) {
+			if (orientacion == 1) {
+			world.moveHorizontally(valor, false);
+		  	}
+		  	else if (orientacion == 1) {
+			world.moveHorizontally(-valor, false);
+		  	}
+		  	else if (orientacion == 2) {
+			world.moveVertically(valor, false);
+		  	}
+		  	else if (orientacion == 3) {
+			world.moveVertically(-valor, false);
+		  	}
+		  }
+		  else if (x.equals("left")) {
+			if (orientacion == 0) {
+			world.moveHorizontally(-valor, false);
+		  	}
+		  	else if (orientacion == 1) {
+			world.moveHorizontally(valor, false);
+		  	}
+		  	else if (orientacion == 2) {
+			world.moveVertically(-valor, false);
+		  	}
+		  	else if (orientacion == 3) {
+			world.moveVertically(valor, false);
+		  	}
+		  }
+		} rt.add("moveToThe");
+	   rt.add(Integer.toString(valor));
+	   rt.add(objT.image);
+	   fin.add(rt);
+	  return fin;
+
+	   }
+	  ) 
+	   
+	}
+
+
+	ArrayList comandmoveInDir(boolean ejecutar):
+	{
+      int valor;
+      Token lat;
+      ArrayList < String > parametros = new ArrayList();
+      ArrayList < ArrayList <String >> grande = new ArrayList();
+    }
+    {
+      (
+        < MOVEINDIR > ":" valor=varOrNum() "," lat=< LAT >
+        {
+          if (ejecutar) { 
+          String x = lat.image.toLowerCase();
+           int orientacion = world.getFacing();
+          if (x.equals("north")) {
+	        if (orientacion == NORTH) {
+	          world.moveForward(valor, false);
+	        }
+            if (orientacion == SOUTH) {
+              world.turnRight();
+              world.turnRight();
+              world.moveForward(valor, false);
+            }
+            else if (orientacion == EAST) {
+              world.turnRight();
+              world.turnRight();
+              world.turnRight();
+              world.moveForward(valor, false);
+            }
+            else if (orientacion == WEST) {
+              world.turnRight();
+              world.moveForward(valor, false);
+            }
+          }
+          else if (x.equals("south")) {
+            if (orientacion == NORTH) {
+              world.turnRight();
+              world.turnRight();
+              world.moveForward(valor, false);
+            }
+	        else if (orientacion == SOUTH) {
+              world.moveForward(valor, false);
+            }
+            else if (orientacion == EAST) {
+              world.turnRight();
+              world.moveForward(valor, false);
+            }
+            else if (orientacion == WEST) {
+              world.turnRight();
+              world.turnRight();
+              world.turnRight();
+              world.moveForward(valor, false);
+            }
+          }
+          else if (x.equals("east")) {
+            if (orientacion == NORTH) {
+              world.turnRight();
+              world.moveForward(valor, false);
+            }
+            else if (orientacion == SOUTH) {
+              world.turnRight();
+              world.turnRight();
+              world.turnRight();
+              world.moveForward(valor, false);
+            }
+	        else if (orientacion == EAST) {
+              world.moveForward(valor, false);
+            }
+            else if (orientacion == WEST) {
+              world.turnRight();
+              world.turnRight();
+              world.moveForward(valor, false);
+            }
+          }
+          else if (x.equals("west")) {
+            if (orientacion == NORTH) {
+              world.turnRight();
+              world.turnRight();
+              world.turnRight();
+              world.moveForward(valor, false);
+            }
+            else if (orientacion == SOUTH) {
+              world.turnRight();
+              world.moveForward(valor, false);
+            }
+            else if (orientacion == EAST) {
+              world.turnRight();
+              world.turnRight();
+              world.moveForward(valor, false);
+            }
+	        else if (orientacion == WEST) {
+              world.moveForward(valor, false);
+            }
+          }
+        parametros.add("moveindir");
+        parametros.add(Integer.toString(valor));
+        parametros.add(x);
+        grande.add(parametros);
+        return grande;
+        }
+        }
+      )
+    }
+	ArrayList commandFace(boolean ejecutar):
+	{
+	  Token var;
+	  ArrayList < String > cardinales = new ArrayList();
+	  ArrayList < ArrayList <String >> grande = new ArrayList();
+	}
+	{
+	  (
+	    < FACE > ":" var=< LAT >
+	    {
+	      if (ejecutar) { 
+		      String x = var.image.toLowerCase();
+		       int orientacion = world.getFacing();
+		      if (x.equals("north")) {
+		        if (orientacion == SOUTH) {
+		          world.turnRight();
+		          world.turnRight();
+		        }
+		        else if (orientacion == EAST) {
+		          world.turnRight();
+		          world.turnRight();
+		          world.turnRight();
+		        }
+		        else if (orientacion == WEST) {
+		          world.turnRight();
+		        }
+		      }
+		      else if (x.equals("south")) {
+				if (orientacion == NORTH) {
+				  world.turnRight();
+				  world.turnRight();
+				}
+				else if (orientacion == EAST) {
+				  world.turnRight();
+				}
+				else if (orientacion == WEST) {
+				  world.turnRight();
+				  world.turnRight();
+				  world.turnRight();
+				}
+			  }
+			  else if (x.equals("east")) {
+			    if (orientacion == NORTH) {
+				  world.turnRight();
+			    }
+			    else if (orientacion == SOUTH) {
+				  world.turnRight();
+				  world.turnRight();
+				  world.turnRight();
+			    }
+			    else if (orientacion == WEST) {
+				  world.turnRight();
+				  world.turnRight();
+			    }
+		      }
+			  else if (x.equals("west")) {
+			    if (orientacion == NORTH) {
+				  world.turnRight();
+				  world.turnRight();
+				  world.turnRight();
+			    }
+			    else if (orientacion == SOUTH) {
+				  world.turnRight();
+			    }
+			    else if (orientacion == EAST) {
+				  world.turnRight();
+				  world.turnRight();
+			    }
+		      }
+		      cardinales.add("face");
+		      cardinales.add(x);
+		      grande.add(cardinales);
+		 }   
+	    }
+	  )
+	  { return grande;}
+	}
+
+	ArrayList comandPut(boolean ejecutar) :
+	{
+		int f=1;
+		 ArrayList < String> rt= new ArrayList();
+		 Token obj;
+		 ArrayList< ArrayList< String>> fin= new ArrayList();
+		 
+	}
+	{
+	  < PUT>":" f=varOrNum()"," (( obj=<CHIPS>  {if(ejecutar) { world.putChips(f); salida = "Command:  Put Chips"; }})
+		|  	  ( obj=<BALLOONS>   {if(ejecutar) {world.putBalloons(f); salida = "Command:  Put Balloons";} })	 )
+		{
+		  rt.add(obj.image);
+		  rt.add(Integer.toString(f));
+		  fin.add(rt);
+	  return fin;
+		}
+	}
+
+
+
+	
+	  
+// CONDICIONALES
+	boolean cond1():
+	{
+	  boolean rta=true;
+	}
+	{
+	  rta= condFacing() { return rta; }
+	| rta= condCanPick(){ return rta; }
+	| rta= condCanPut(){  return rta; }
+	| rta=condnot() {  return rta; }
+	| rta=condCanMoveInDir() {  return rta; }
+	| rta=condCanJumpInDir() {  return rta; }
+	| rta=condCanMoveToThe() {  return rta; }
+	| rta=condcanJumpToThe() {  return rta; }
+	}
+
+	boolean condnot():
+	{
+	  boolean cond=true;
+	}
+	{
+	 < NOT> ":" cond=cond1()
+	 {
+	   cond= !cond;
+	   return cond;
+	 }
+	}
+
+boolean condCanMoveToThe():
+{
+    int var;
+    String latitud=null;
+    Token lat;
+    String dire;
+}
+{
+  <CANMOVETOTHE> ":" var=varOrNum() "," lat=<DIR>
+  {
+    dire= lat.image.toLowerCase();
+     if(dire.equals("front")) {latitud="north"; }
+    else if(dire.equals("back")) {latitud="south"; }
+    else if(dire.equals("right")) {latitud="east"; }
+    else if(dire.equals("left")) {latitud="west"; }
+            
+    boolean verificacion = true;
+    if(latitud.equals("north")) {
+      Point p = world.getPosition();
+		int tam = world.getN();
+		int newY,i;
+		newY = p.y+(-var);
+		int dir = 5;
+		{  
+		if(p.y - newY > 0) { 
+			dir = NORTH;
+		} else { 
+			dir = SOUTH;
+		} if (newY > tam) { 
+			verificacion = false;
+		} else if (newY < 1) { 
+			verificacion=false;
+		} else if (this.world.isBlocked(new Point(p.x, newY))) {
+			verificacion = false;
+		}  else if(world.blockedInRange(p.x, p.y, newY, dir)) { 
+			verificacion = false;
+      	}
+     	}
+   }
+   else if(latitud.equals("south")) {
+      Point p = world.getPosition();
+		int tam = world.getN();
+		int newY,i;
+		newY = p.y+(var);
+		int dir = 5;
+		{
+		  if(p.y - newY > 0) { 
+			dir = NORTH;
+		} else { 
+			dir = SOUTH;
+		} if (newY > tam) { 
+			verificacion = false;
+		} else if (newY < 1) { 
+			verificacion=false;
+		} else if (this.world.isBlocked(new Point(p.x, newY))) { 
+				verificacion = false;
+		} 
+		 else if(world.blockedInRange(p.x, p.y, newY, dir)) {
+			verificacion = false;
+		}
+		}
+	}
+	else if(latitud.equals("east")) {
+      Point p =world.getPosition();
+		int tam = world.getN();
+		int newX;
+		newX = p.x+var;
+		int dir = 5;
+		{
+		 if(p.x - newX > 0) { 
+			dir = WEST;
+		} else { 
+			dir = EAST;
+		} if (newX > tam) {  
+			verificacion = false;
+   		} else if (newX < 1) {  
+			verificacion = false;
+    	} else if (this.world.isBlocked(new Point(newX,p.y))) { 
+			verificacion = false;
+    	}  else if(world.blockedInRange(p.x, p.y, newX, dir)) {
+			verificacion = false;
+		}
+    	}
+   }
+   else if (latitud.equals("west")) { 
+      Point p =world.getPosition();
+		int tam = world.getN();
+		int newX;
+		newX = p.x+(-var);
+		int dir = 5;
+		{
+		if(p.x - newX > 0) { 
+			dir = WEST;
+		} else { 
+			dir = EAST;
+		} if (newX > tam) {  
+			verificacion = false;
+    	} else if (newX < 1) {  
+			verificacion = false;
+    	} else if (this.world.isBlocked(new Point(newX,p.y))) { 
+			verificacion = false;
+    	} 
+    	else if(world.blockedInRange(p.x, p.y, newX, dir)) { 
+			verificacion = false;
+		}
+    	}
+
+  }
+  	if (verificacion) { 
+    System.out.println("si sirve");
+  }else {
+      System.out.println("no_sirve");
+    }
+    return verificacion;
+}
+}
+
+	
+    boolean condCanMoveInDir():
+{
+    int var;
+    String latitud;
+    Token lat;
+}
+{
+  <CANMOVEINDIR> ":" var=varOrNum() "," lat=<LAT>
+  {
+    latitud= lat.image.toLowerCase();
+    boolean verificacion = true;
+    if(latitud.equals("north")) {
+      Point p = world.getPosition();
+		int tam = world.getN();
+		int newY,i;
+		newY = p.y+(-var);
+		int dir = 5;
+		{  
+		if(p.y - newY > 0) { 
+			dir = NORTH;
+		} else { 
+			dir = SOUTH;
+		} if (newY > tam) { 
+			verificacion = false;
+		} else if (newY < 1) { 
+			verificacion=false;
+		} else if (this.world.isBlocked(new Point(p.x, newY))) {
+			verificacion = false;
+		}  else if(world.blockedInRange(p.x, p.y, newY, dir)) { 
+			verificacion = false;
+      	}
+     	}
+   }
+   else if(latitud.equals("south")) {
+      Point p = world.getPosition();
+		int tam = world.getN();
+		int newY,i;
+		newY = p.y+(var);
+		int dir = 5;
+		{
+		  if(p.y - newY > 0) { 
+			dir = NORTH;
+		} else { 
+			dir = SOUTH;
+		} if (newY > tam) { 
+			verificacion = false;
+		} else if (newY < 1) { 
+			verificacion=false;
+		} else if (this.world.isBlocked(new Point(p.x, newY))) { 
+				verificacion = false;
+		} 
+		 else if(world.blockedInRange(p.x, p.y, newY, dir)) {
+			verificacion = false;
+		}
+		}
+	}
+	else if(latitud.equals("east")) {
+      Point p =world.getPosition();
+		int tam = world.getN();
+		int newX;
+		newX = p.x+var;
+		int dir = 5;
+		{
+		 if(p.x - newX > 0) { 
+			dir = WEST;
+		} else { 
+			dir = EAST;
+		} if (newX > tam) {  
+			verificacion = false;
+   		} else if (newX < 1) {  
+			verificacion = false;
+    	} else if (this.world.isBlocked(new Point(newX,p.y))) { 
+			verificacion = false;
+    	}  else if(world.blockedInRange(p.x, p.y, newX, dir)) {
+			verificacion = false;
+		}
+    	}
+   }
+   else if (latitud.equals("west")) { 
+      Point p =world.getPosition();
+		int tam = world.getN();
+		int newX;
+		newX = p.x+(-var);
+		int dir = 5;
+		{
+		if(p.x - newX > 0) { 
+			dir = WEST;
+		} else { 
+			dir = EAST;
+		} if (newX > tam) {  
+			verificacion = false;
+    	} else if (newX < 1) {  
+			verificacion = false;
+    	} else if (this.world.isBlocked(new Point(newX,p.y))) { 
+			verificacion = false;
+    	} 
+    	else if(world.blockedInRange(p.x, p.y, newX, dir)) { 
+			verificacion = false;
+		}
+    	}
+
+  }
+  	if (verificacion) { 
+    System.out.println("si sirve");
+  }else {
+      System.out.println("no_sirve");
+    }
+    return verificacion;
+}
+}
+	boolean condCanJumpInDir():
+{
+    int var;
+    String latitud;
+    Token lat;
+}
+{
+  <CANJUMPINDIR> ":" var=varOrNum() "," lat=<LAT>
+  {
+    latitud= lat.image.toLowerCase();
+    boolean verificacion = true;
+    if(latitud.equals("north")) {
+      Point p = world.getPosition();
+		int tam = world.getN();
+		int newY,i;
+		newY = p.y+(-var);
+		int dir = 5;
+		{  
+		if(p.y - newY > 0) { 
+			dir = NORTH;
+		} else { 
+			dir = SOUTH;
+		} if (newY > tam) { 
+			verificacion = false;
+		} else if (newY < 1) { 
+			verificacion=false;
+		} else if (this.world.isBlocked(new Point(p.x, newY))) {
+			verificacion = false;
+		} else if(world.blockedInRange(p.x, p.y, newY, dir)) { 
+			verificacion = false;
+      	}
+     	}
+   }
+   else if(latitud.equals("south")) {
+      Point p = world.getPosition();
+		int tam = world.getN();
+		int newY,i;
+		newY = p.y+(var);
+		int dir = 5;
+		{
+		  if(p.y - newY > 0) { 
+			dir = NORTH;
+		} else { 
+			dir = SOUTH;
+		} if (newY > tam) { 
+			verificacion = false;
+		} else if (newY < 1) { 
+			verificacion=false;
+		} else if (this.world.isBlocked(new Point(p.x, newY))) { 
+				verificacion = false;
+		} else if(world.blockedInRange(p.x, p.y, newY, dir)) {
+			verificacion = false;
+		}
+		}
+	}
+	else if(latitud.equals("east")) {
+      Point p =world.getPosition();
+		int tam = world.getN();
+		int newX;
+		newX = p.x+var;
+		int dir = 5;
+		{
+		 if(p.x - newX > 0) { 
+			dir = WEST;
+		} else { 
+			dir =EAST;
+		} if (newX > tam) {  
+			verificacion = false;
+   		} else if (newX < 1) {  
+			verificacion = false;
+    	} else if (this.world.isBlocked(new Point(newX,p.y))) { 
+			verificacion = false;
+    	} else if(world.blockedInRange(p.x, p.y, newX, dir)) {
+			verificacion = false;
+		}
+    	}
+   }
+   else if (latitud.equals("west")) { 
+      Point p =world.getPosition();
+		int tam = world.getN();
+		int newX;
+		newX = p.x+(-var);
+		int dir = 5;
+		{
+		if(p.x - newX > 0) { 
+			dir = WEST;
+		} else { 
+			dir = EAST;
+		} if (newX > tam) {  
+			verificacion = false;
+    	} else if (newX < 1) {  
+			verificacion = false;
+    	} else if (this.world.isBlocked(new Point(newX,p.y))) { 
+			verificacion = false;
+    	} else if(world.blockedInRange(p.x, p.y, newX, dir)) { 
+			verificacion = false;
+		}
+    	}
+   }
+	if (verificacion) { 
+    System.out.println("si sirve");
+  }else {
+      System.out.println("no_sirve");
+    }
+  return verificacion;
+}
+}
+	
+	boolean condcanJumpToThe():
+{
+    int var;
+    String latitud=null;
+    Token lat;
+    String dire;
+}
+{
+  <CANJUMPTOTHE> ":" var=varOrNum() "," lat=<DIR>
+  {
+    dire= lat.image.toLowerCase();
+     if(dire.equals("front")) {latitud="north"; }
+    else if(dire.equals("back")) {latitud="south"; }
+    else if(dire.equals("right")) {latitud="east"; }
+    else if(dire.equals("left")) {latitud="west"; }
+    
+    boolean verificacion = true;
+    if(latitud.equals("north")) {
+      Point p = world.getPosition();
+		int tam = world.getN();
+		int newY,i;
+		newY = p.y+(-var);
+		int dir = 5;
+		{  
+		if(p.y - newY > 0) { 
+			dir = NORTH;
+		} else { 
+			dir = SOUTH;
+		} if (newY > tam) { 
+			verificacion = false;
+		} else if (newY < 1) { 
+			verificacion=false;
+		} else if (this.world.isBlocked(new Point(p.x, newY))) {
+			verificacion = false;
+		} else if(world.blockedInRange(p.x, p.y, newY, dir)) { 
+			verificacion = false;
+      	}
+     	}
+   }
+   else if(latitud.equals("south")) {
+      Point p = world.getPosition();
+		int tam = world.getN();
+		int newY,i;
+		newY = p.y+(var);
+		int dir = 5;
+		{
+		  if(p.y - newY > 0) { 
+			dir = NORTH;
+		} else { 
+			dir = SOUTH;
+		} if (newY > tam) { 
+			verificacion = false;
+		} else if (newY < 1) { 
+			verificacion=false;
+		} else if (this.world.isBlocked(new Point(p.x, newY))) { 
+				verificacion = false;
+		} else if(world.blockedInRange(p.x, p.y, newY, dir)) {
+			verificacion = false;
+		}
+		}
+	}
+	else if(latitud.equals("east")) {
+      Point p =world.getPosition();
+		int tam = world.getN();
+		int newX;
+		newX = p.x+var;
+		int dir = 5;
+		{
+		 if(p.x - newX > 0) { 
+			dir = WEST;
+		} else { 
+			dir =EAST;
+		} if (newX > tam) {  
+			verificacion = false;
+   		} else if (newX < 1) {  
+			verificacion = false;
+    	} else if (this.world.isBlocked(new Point(newX,p.y))) { 
+			verificacion = false;
+    	} else if(world.blockedInRange(p.x, p.y, newX, dir)) {
+			verificacion = false;
+		}
+    	}
+   }
+   else if (latitud.equals("west")) { 
+      Point p =world.getPosition();
+		int tam = world.getN();
+		int newX;
+		newX = p.x+(-var);
+		int dir = 5;
+		{
+		if(p.x - newX > 0) { 
+			dir = WEST;
+		} else { 
+			dir = EAST;
+		} if (newX > tam) {  
+			verificacion = false;
+    	} else if (newX < 1) {  
+			verificacion = false;
+    	} else if (this.world.isBlocked(new Point(newX,p.y))) { 
+			verificacion = false;
+    	} else if(world.blockedInRange(p.x, p.y, newX, dir)) { 
+			verificacion = false;
+		}
+    	}
+   }
+	if (verificacion) { 
+    System.out.println("si sirve");
+  }else {
+      System.out.println("no_sirve");
+    }
+  return verificacion;
+}
+}
+	
+
+
+	boolean condFacing():
+	{
+	  Token latT;
+	  String lati;
+	  boolean rta=true;
+	  
+	}
+	{
+	  < FACING> ":" latT=< LAT>
+	  {
+	    lati=latT.image.toLowerCase();
+	    if(lati.equals("north")) {
+	      rta= world.facingNorth(); }
+	    if(lati.equals("south")) {
+	      rta= world.facingSouth(); }
+	    if(lati.equals("east")) {
+	      rta= world.facingEast(); }
+	    if(lati.equals("west")) {
+	      rta= world.facingWest(); }
+
+	    System.out.println(rta);
+	    return rta;
+	    }
+
+	  }
+
+	  boolean condCanPick():
+	  { Token objT;
+	  String obj;
+	  int valor;}
+	  {
+	    < CANPICK> ":" valor=varOrNum() "," (objT=< BALLOONS> |objT=< CHIPS>)
+	  {
+	  boolean verf=true;
+	  obj= objT.image.toLowerCase();
+	  if (obj.equals("chips")) {
+	    if(valor<0) {verf=false; }
+	    else if(valor > world.chipsToPick()) {verf=false; }
+	  }
+	  else if(obj.equals("balloons")) {
+	    if(valor<0) {verf=false; }
+	    else if (world.countBalloons(world.getPosition())< valor) { verf=false;}
+	    }
+	  
+	  System.out.println(verf);
+	  return verf;
+	}
+ }
+
+
+   boolean condCanPut():  
+	{
+	    String objeto;
+	    Token objT;
+	    int var;
+	}
+	{
+	  < CANPUT > ":" var=varOrNum() "," (objT=< CHIPS > | objT=< BALLOONS >) 
+	    {
+	       Boolean verificar=true;
+	       objeto = objT.image.toLowerCase();
+	       if(objeto.equals("chips")) { 
+	        	if (var > world.freeSpacesForChips()) { 
+	            	verificar = false;
+	            }
+	        	else if (var <= world.freeSpacesForChips()) {
+	            	verificar = true;
+	        }
+	      }
+	      if(objeto.equals("balloons")) { 
+	            }
+	        else if (var > world.getMyBalloons()) { 
+	            verificar = false;
+	            }
+	        else if (var < world.freeSpacesForChips()) {
+	            verificar = true;
+	        }
+	      System.out.println(verificar);
+	      return verificar;
+	}
+}
+
+	  
+
+
+ 
+
+	
+// AYUDAS
+	int varOrNum() throws Error:
+	{
+	  int total=0;
+	  String variable;
+	}
+	{
+	  (
+	    < ID >
+	    {
+	      variable =token.image;
+	      if(variables.get(variable) !=null) {
+	        total= variables.get(variable);
+	      }else {
+	        throw new Error("La variable no existe");
+	      }
+	       return total;
+	       
+	     }
+	    | < NUM > { try 
+				{
+					total = Integer.parseInt(token.image);
+				} 
+				catch (NumberFormatException ee) 
+				{
+					throw new Error("Number out of bounds: "+token.image+" !!");
+				}
+				return total; }		  )
+	}
+
+
+	
+	void put() :
+	{
+		int f=1;	
+	}
+	{
+		( <CHIPS>    "," f=num() {world.putChips(f); salida = "Command:  Put Chips"; })
+		|  	  ( <BALLOONS>   "," f=num() {world.putBalloons(f); salida = "Command:  Put Balloons";})	 
+
+	}
+
+	void get() :
+	{
+		int f=1;	
+	}
+	{
+		( <CHIPS>   "," f=num() {world.pickChips(f);salida = "Command:  Pick chips";})
+		|  	  ( <BALLOONS>   "," f=num() {world.grabBalloons(f);salida="Command:  Pick balloons";})	 
+
+	}
+
+
+	/**
+	 * Unsigned decimal number
+	 * @return the corresponding value of the string
+	 * @error  corresponding value is too large
+	 */
+
+	int num() throws Error:
+	{	
+		int total=1;
+	}
+	{
+		<NUM>
+		{
+			try 
+			{
+				total = Integer.parseInt(token.image);
+			} 
+			catch (NumberFormatException ee) 
+			{
+				throw new Error("Number out of bounds: "+token.image+" !!");
+			}
+			return total;
+		}
+	}
+
+	
+
+
+
+
+void boulean():
+{
+}
+{
+  partBou() (( "||" | "&&" ) partBou())*
+}
+
+void partBou():
+{
+}
+{
+  varOrNum() (< GT > | < EQUALS >) varOrNum()
+| "!" boulean()
+}
